@@ -1,0 +1,131 @@
+// AJS Baustoffe — Prisma schema
+// PostgreSQL. Run `npm run db:push` (dev) or `npm run db:migrate` (prod).
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model AdminUser {
+  id           String   @id @default(cuid())
+  email        String   @unique
+  passwordHash String
+  name         String
+  createdAt    DateTime @default(now())
+}
+
+model Category {
+  id        String    @id @default(cuid())
+  slug      String    @unique
+  name      String
+  de        String // English subtitle shown under the name
+  tagline   String
+  image     String // URL or stored upload path
+  sortOrder Int       @default(0)
+  products  Product[]
+  createdAt DateTime  @default(now())
+  updatedAt DateTime  @updatedAt
+}
+
+model Product {
+  id         String       @id @default(cuid())
+  name       String
+  short      String
+  image      String
+  badge      String?
+  featured   Boolean      @default(false)
+  category   Category     @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+  categoryId String
+  variations Variation[]
+  sortOrder  Int          @default(0)
+  createdAt  DateTime     @default(now())
+  updatedAt  DateTime     @updatedAt
+}
+
+model Variation {
+  id        String  @id @default(cuid())
+  ref       String // unique label used in cart, e.g. "12.5 mm · 2000×1250"
+  label     String
+  sub       String
+  product   Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+  productId String
+  sortOrder Int     @default(0)
+}
+
+enum QuoteStatus {
+  NEU
+  IN_BEARBEITUNG
+  ANGEBOT_GESENDET
+  ABGESCHLOSSEN
+}
+
+model QuoteRequest {
+  id           String      @id @default(cuid())
+  reference    String      @unique // e.g. "AJS-2042"
+  company      String?
+  contactName  String
+  contactRole  String?
+  contactPhone String?
+  contactEmail String
+  city         String?
+  note         String?
+  status       QuoteStatus @default(NEU)
+  lines        QuoteLine[]
+  createdAt    DateTime    @default(now())
+  updatedAt    DateTime    @updatedAt
+}
+
+model QuoteLine {
+  id        String       @id @default(cuid())
+  name      String
+  variation String
+  qty       Int
+  quote     QuoteRequest @relation(fields: [quoteId], references: [id], onDelete: Cascade)
+  quoteId   String
+}
+
+model ContactMessage {
+  id        String   @id @default(cuid())
+  name      String
+  email     String
+  firma     String?
+  message   String
+  handled   Boolean  @default(false)
+  createdAt DateTime @default(now())
+}
+
+model InstagramPost {
+  id        String   @id @default(cuid())
+  authorName String  @default("AJS Baustoffe")
+  caption   String
+  image     String
+  video     Boolean  @default(false)
+  videoSrc  String?
+  link      String   @default("https://www.instagram.com/")
+  likes     Int      @default(0)
+  comments  Int      @default(0)
+  postedAt  DateTime @default(now())
+  sortOrder Int      @default(0)
+}
+
+// Single-row table (id = "singleton") holding editable site settings.
+model SiteSettings {
+  id          String @id @default("singleton")
+  companyName String @default("AJS Baustoffe")
+  tagline     String
+  phone       String
+  email       String
+  street      String
+  zip         String
+  city        String
+  linkedin    String @default("")
+  instagram   String @default("")
+  xing        String @default("")
+  youtube     String @default("")
+  heroImage   String
+  updatedAt   DateTime @updatedAt @default(now())
+}
